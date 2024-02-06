@@ -55,7 +55,7 @@ async function runScraper(): Promise<void> {
 
   if (gigs.length) {
     fs.writeFileSync('events.json', JSON.stringify(gigs, null, 2), 'utf-8');
-    console.log('Data saved to events.json');
+    console.log('Data saved to events.json :)');
   } else {
     console.log('No data to save.');
   }
