@@ -1,113 +1,131 @@
-import Image from "next/image";
+import Runscraper from "./components/run-scraper";
+const fs = require("fs");
+const puppeteer = require("puppeteer")
 
-export default function Home() {
+
+const endpoint: string = "https://www.houseofyes.org/";
+
+interface Gig {
+  title: string;
+  date?: string;
+  genre?: string;
+  location?: string;
+  time?: string;
+  price?: string;
+  image?: string;
+  excerpt?: string;
+  isFeatured: boolean;
+  rating: number;
+}
+
+interface HomeProps {
+  searchParams: { runScraperButton?: boolean };
+}
+
+export default function Home({ searchParams }: HomeProps): JSX.Element {
+  console.log(typeof searchParams)
+  if(searchParams.runScraperButton) {
+    runScraper();
+  }
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <Runscraper />
+  </main>
+  )
+}
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+async function runScraper(): Promise<void> {
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
+  await page.goto(endpoint, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('td.cal-ticket a', { timeout: 30000 });
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+  const eventLinks = await dynamicScrollAndCollectLinks(page, 'td.cal-ticket a');
+  console.log(`Collected ${eventLinks.length} event links`);
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+  let gigs: Gig[] = [];
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+  for (const link of eventLinks) {
+    const gigDetails = await scrapeEventDetails(page, link);
+    if (gigDetails) gigs.push(gigDetails);
+  }
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+  console.log(`Scraped ${gigs.length} event details`);
+  await browser.close();
+
+  if (gigs.length) {
+    fs.writeFileSync('events.json', JSON.stringify(gigs, null, 2), 'utf-8');
+    console.log('Data saved to events.json');
+  } else {
+    console.log('No data to save.');
+  }
+}
+
+async function dynamicScrollAndCollectLinks(page: any, selector: string): Promise<string[]> {
+  let links = new Set<string>();
+  try {
+    let previousSize = 0;
+    let newSize = 0;
+    do {
+      previousSize = links.size;
+      const newLinks = await page.$$eval(selector, (elements: Element[]) =>
+      elements.map((element) => {
+        // Assert the element type to HTMLAnchorElement
+        const anchor = element as HTMLAnchorElement;
+        return anchor.href;
+      })
+    );
+      newLinks.forEach((link: string) => links.add(link));
+      newSize = links.size;
+      if (newSize > previousSize) {
+        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+        await page.waitForTimeout(2000); // Adjust this timeout as needed
+      }
+    } while (newSize > previousSize);
+  } catch (error) {
+    console.error('Error during dynamic scroll and link collection: ', error);
+  }
+  return Array.from(links);
+}
+
+async function scrapeEventDetails(page: any, link: string): Promise<Gig | null> {
+  try {
+    await page.goto(link, { waitUntil: 'networkidle0' });
+    const title = await page.evaluate(() => {
+      const titleElement = document.querySelector('.event-title.css-0, h1.event-title, .ng-binding.pointer');
+      return titleElement ? titleElement.textContent?.trim() : 'Title Not Found';
+    });
+    const date = await page.$eval('.start-date', (el: Element) => el.getAttribute('datetime') || '');
+    const genre = await page.$eval('p[class="summary"] strong', (el: Element) => el.textContent?.trim() || '');
+    const location = await page.$eval('.location-info__address-text', (el: Element) => el.textContent?.trim() || '');
+    const time = await page.$eval('.date-info__full-datetime', (el: Element) => el.textContent?.trim() || '');
+    const price = await page.$eval('.conversion-bar__panel-info', (el: Element) => el.textContent?.trim() || '');
+    const image = await page.$eval('picture[data-testid="hero-image"] img', (img: Element) => img.getAttribute('src') || '');
+
+    let excerpt = await page.evaluate((): string => {
+      const descriptionElement = document.querySelector('.event-description__content--expanded');
+      if (!descriptionElement) return '';
+      let html = descriptionElement.innerHTML;
+      html = html.replace(/<br\s*[\/]?>/gi, "\n");
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      return div.textContent || div.innerText || '';
+    });
+
+    return {
+      title,
+      date,
+      genre,
+      location,
+      time,
+      price,
+      image,
+      excerpt,
+      isFeatured: false,
+      rating: 0,
+    };
+  } catch (error) {
+    console.error(`Error scraping details from ${link}: `, error);
+    return null;
+  }
 }
