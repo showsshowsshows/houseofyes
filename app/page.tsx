@@ -16,6 +16,7 @@ interface Gig {
   excerpt?: string;
   isFeatured: boolean;
   rating: number;
+  expiresAt?: string;
 }
 
 interface HomeProps {
@@ -96,6 +97,7 @@ async function scrapeEventDetails(page: any, link: string): Promise<Gig | null> 
       return titleElement ? titleElement.textContent?.trim() : 'Title Not Found';
     });
     const date = await page.$eval('.start-date', (el: Element) => el.getAttribute('datetime') || '');
+    const expiresAt = calculateExpiresAt(date)
     const genre = await page.$eval('p[class="summary"] strong', (el: Element) => el.textContent?.trim() || '');
     const location = await page.$eval('.location-info__address-text', (el: Element) => el.textContent?.trim() || '');
     const time = await page.$eval('.date-info__full-datetime', (el: Element) => el.textContent?.trim() || '');
@@ -123,9 +125,21 @@ async function scrapeEventDetails(page: any, link: string): Promise<Gig | null> 
       excerpt,
       isFeatured: false,
       rating: 0,
+      expiresAt
+
     };
   } catch (error) {
     console.error(`Error scraping details from ${link}: `, error);
     return null;
   }
 }
+
+const calculateExpiresAt = (eventDate: any) => {
+  const date = new Date(eventDate);
+
+  date.setUTCDate(date.getUTCDate() + 1);
+  date.setUTCHours(2, 0, 0, 0); 
+
+  let isoString = date.toISOString(); 
+  return isoString;
+};
